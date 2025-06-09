@@ -45,22 +45,18 @@ for campaign in campaigns:
             st.write("**Messages:**")
             messages = get_campaign_messages(st.session_state.db, campaign.id)
             for message in messages:
-                st.write(f"- {message.content} (via {message.channel})")
+                st.write(f"- {message.content}")
         
         with col2:
             # Add new message
             with st.form(f"add_message_form_{campaign.id}"):
                 message_content = st.text_area("Message Content")
-                message_channel = st.selectbox("Channel", ["WhatsApp", "Email", "SMS", "Push Notification"])
-                message_timing = st.text_input("Timing")
                 if st.form_submit_button("Add Message"):
-                    if message_content and message_channel:
+                    if message_content:
                         create_message(
                             st.session_state.db,
                             campaign.id,
-                            message_content,
-                            message_channel,
-                            message_timing
+                            message_content
                         )
                         st.success("Message added!")
                         st.rerun()
