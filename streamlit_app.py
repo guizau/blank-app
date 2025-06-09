@@ -31,25 +31,28 @@ st.json(signals)
 # Run all agents
 AGENTS = ["Product", "Service", "Insight", "Timing", "Content", "Channel"]
 
+import pandas as pd
+
 if st.button("Run All Agents"):
-    agent_outputs = {}
+    agent_outputs = []
     with st.spinner("Agents making decisions..."):
         for agent in AGENTS:
             result = run_agent(agent, signals)
-            agent_outputs[agent] = result
+            agent_outputs.append(result)
 
-    st.subheader("🤖 Agent Outputs")
-    cols = st.columns(3)
-    for i, agent in enumerate(AGENTS):
-        with cols[i % 3]:
-            st.markdown(f"**{agent} Agent**")
-            st.success(agent_outputs[agent])
+    st.subheader("🤖 Structured Agent Decisions")
+    df = pd.DataFrame(agent_outputs)
+    st.dataframe(df)
 
-    # Final Output View
-    st.subheader("📬 Final Orchestrated Message")
-    st.info(f"""
-At **{agent_outputs['Timing']}**, via **{agent_outputs['Channel']}**, 
+    st.subheader("📬 Final Output (Composed Message)")
+    content = next((a for a in agent_outputs if a['agent'] == "Content"), None)
+    timing = next((a for a in agent_outputs if a['agent'] == "Timing"), None)
+    channel = next((a for a in agent_outputs if a['agent'] == "Channel"), None)
+
+    if content and timing and channel:
+        st.info(f"""
+At **{timing['decision']}**, via **{channel['decision']}**, 
 {signals['name']} receives:
-> {agent_outputs['Content']}
-    """)
+> {content['decision']}
+        """)
 
