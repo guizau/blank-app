@@ -48,12 +48,10 @@ def delete_campaign(db: Session, campaign_id: int):
     return False
 
 # Message CRUD operations
-def create_message(db: Session, campaign_id: int, content: str, channel: str, timing: str = None):
+def create_message(db: Session, campaign_id: int, content: str):
     message = Message(
         campaign_id=campaign_id,
-        content=content,
-        channel=channel,
-        timing=timing
+        content=content
     )
     db.add(message)
     db.commit()
@@ -66,15 +64,11 @@ def get_message(db: Session, message_id: int):
 def get_campaign_messages(db: Session, campaign_id: int, skip: int = 0, limit: int = 100):
     return db.query(Message).filter(Message.campaign_id == campaign_id).offset(skip).limit(limit).all()
 
-def update_message(db: Session, message_id: int, content: str = None, channel: str = None, timing: str = None):
+def update_message(db: Session, message_id: int, content: str = None):
     message = get_message(db, message_id)
     if message:
         if content:
             message.content = content
-        if channel:
-            message.channel = channel
-        if timing is not None:
-            message.timing = timing
         db.commit()
         db.refresh(message)
     return message
