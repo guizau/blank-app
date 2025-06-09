@@ -1,4 +1,7 @@
+import os
 import streamlit as st
+
+os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(page_title="Moena AI Decisioning Demo", layout="wide")
 
