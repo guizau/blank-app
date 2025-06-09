@@ -1,15 +1,13 @@
 import os
 import streamlit as st
-from langchain.chat_models import ChatOpenAI
-from langchain.prompts import ChatPromptTemplate
+from agents import run_agent
 
-# Load secret key from Streamlit Cloud
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(page_title="Moena AI Demo", layout="wide")
-st.title("🧠 Moena AI Decisioning Demo")
+st.title("🧠 Moena AI Multi-Agent Demo")
 
-# Signals from user
+# Sidebar – Customer Signals
 st.sidebar.header("Customer Signals")
 name = st.sidebar.text_input("Name", value="Lucas Andrade")
 business_type = st.sidebar.selectbox("Business Type", ["Bakery", "Retail", "Beauty", "Services"])
@@ -30,31 +28,28 @@ signals = {
 st.subheader("📡 Ingested Customer Signals")
 st.json(signals)
 
-# LLM-powered Content Agent
-def run_content_agent(signals: dict) -> str:
-    model = ChatOpenAI(temperature=0.7, model_name="gpt-4")
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", """
-You are a Content Personalization Agent.
-Write a short, compelling message for the customer below.
-Be direct and practical. Max 280 characters.
-        """),
-        ("human", f"""
-Customer name: {signals['name']}
-Business type: {signals['business_type']}
-Season: {signals['season']}
-Channel Preference: {signals['channel_preference']}
-Cash Reserve: BRL {signals['cash_reserve']}
-Monthly Revenue: BRL {signals['monthly_revenue']}
-        """)
-    ])
-    return model(prompt.format_messages()).content.strip()
+# Run all agents
+AGENTS = ["Product", "Service", "Insight", "Timing", "Content", "Channel"]
 
-# Run agent
-st.subheader("🤖 LLM-Powered Agent: Content")
+if st.button("Run All Agents"):
+    agent_outputs = {}
+    with st.spinner("Agents making decisions..."):
+        for agent in AGENTS:
+            result = run_agent(agent, signals)
+            agent_outputs[agent] = result
 
-if st.button("Generate Personalized Message"):
-    with st.spinner("Thinking..."):
-        message = run_content_agent(signals)
-        st.success("Generated Message:")
-        st.write(f"> {message}")
+    st.subheader("🤖 Agent Outputs")
+    cols = st.columns(3)
+    for i, agent in enumerate(AGENTS):
+        with cols[i % 3]:
+            st.markdown(f"**{agent} Agent**")
+            st.success(agent_outputs[agent])
+
+    # Final Output View
+    st.subheader("📬 Final Orchestrated Message")
+    st.info(f"""
+At **{agent_outputs['Timing']}**, via **{agent_outputs['Channel']}**, 
+{signals['name']} receives:
+> {agent_outputs['Content']}
+    """)
+
