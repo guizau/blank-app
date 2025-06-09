@@ -23,8 +23,6 @@ class Message(Base):
     id = Column(Integer, primary_key=True)
     campaign_id = Column(Integer, ForeignKey('campaigns.id'), nullable=False)
     content = Column(Text, nullable=False)
-    channel = Column(String(50), nullable=False)  # WhatsApp, Email, SMS, etc.
-    timing = Column(String(100))  # When to send the message
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
