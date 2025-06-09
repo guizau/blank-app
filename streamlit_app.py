@@ -1,20 +1,84 @@
 import os
 import streamlit as st
 from agents import run_agent
+from crud import (
+    create_campaign, get_campaigns, update_campaign, delete_campaign,
+    create_message, get_campaign_messages, update_message, delete_message,
+    get_db
+)
 
 os.environ["OPENAI_API_KEY"] = st.secrets["OPENAI_API_KEY"]
 
 st.set_page_config(page_title="Moena AI Demo", layout="wide")
 st.title("🧠 Moena AI Multi-Agent Demo")
 
-# Sidebar – Customer Signals
-st.sidebar.header("Customer Signals")
-name = st.sidebar.text_input("Name", value="Lucas Andrade")
-business_type = st.sidebar.selectbox("Business Type", ["Bakery", "Retail", "Beauty", "Services"])
-season = st.sidebar.selectbox("Season", ["Holiday", "Back to School", "Low Season"])
-channel_pref = st.sidebar.selectbox("Preferred Channel", ["WhatsApp", "Email", "SMS", "Push Notification"])
-cash_reserve = st.sidebar.slider("Cash Reserve (BRL)", 0, 20000, 7800)
-monthly_revenue = st.sidebar.slider("Monthly Revenue (BRL)", 5000, 50000, 32000)
+# Initialize session state for database
+if 'db' not in st.session_state:
+    st.session_state.db = next(get_db())
+
+# Campaign Management Section
+st.header("📢 Campaign Management")
+
+# Create Campaign
+with st.expander("Create New Campaign"):
+    with st.form("create_campaign_form"):
+        campaign_name = st.text_input("Campaign Name")
+        campaign_description = st.text_area("Campaign Description")
+        submitted = st.form_submit_button("Create Campaign")
+        if submitted and campaign_name:
+            create_campaign(st.session_state.db, campaign_name, campaign_description)
+            st.success("Campaign created successfully!")
+
+# List and Manage Campaigns
+st.subheader("Your Campaigns")
+campaigns = get_campaigns(st.session_state.db)
+
+for campaign in campaigns:
+    with st.expander(f"📋 {campaign.name}"):
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            st.write(f"**Description:** {campaign.description or 'No description'}")
+            st.write(f"**Created:** {campaign.created_at.strftime('%Y-%m-%d %H:%M')}")
+            
+            # Messages for this campaign
+            st.write("**Messages:**")
+            messages = get_campaign_messages(st.session_state.db, campaign.id)
+            for message in messages:
+                st.write(f"- {message.content} (via {message.channel})")
+        
+        with col2:
+            # Add new message
+            with st.form(f"add_message_form_{campaign.id}"):
+                message_content = st.text_area("Message Content")
+                message_channel = st.selectbox("Channel", ["WhatsApp", "Email", "SMS", "Push Notification"])
+                message_timing = st.text_input("Timing")
+                if st.form_submit_button("Add Message"):
+                    if message_content and message_channel:
+                        create_message(
+                            st.session_state.db,
+                            campaign.id,
+                            message_content,
+                            message_channel,
+                            message_timing
+                        )
+                        st.success("Message added!")
+                        st.rerun()
+            
+            # Delete campaign
+            if st.button("Delete Campaign", key=f"delete_{campaign.id}"):
+                delete_campaign(st.session_state.db, campaign.id)
+                st.success("Campaign deleted!")
+                st.rerun()
+
+# Original Customer Signals Section
+st.header("👥 Customer Signals")
+name = st.text_input("Name", value="Lucas Andrade")
+business_type = st.selectbox("Business Type", ["Bakery", "Retail", "Beauty", "Services"])
+season = st.selectbox("Season", ["Holiday", "Back to School", "Low Season"])
+channel_pref = st.selectbox("Preferred Channel", ["WhatsApp", "Email", "SMS", "Push Notification"])
+cash_reserve = st.slider("Cash Reserve (BRL)", 0, 20000, 7800)
+monthly_revenue = st.slider("Monthly Revenue (BRL)", 5000, 50000, 32000)
 
 signals = {
     "name": name,
@@ -29,7 +93,7 @@ st.subheader("📡 Ingested Customer Signals")
 st.json(signals)
 
 # Run all agents
-AGENTS = ["Product", "Service", "Insight", "Timing", "Content", "Channel"]
+AGENTS = ["Product", "Timing", "Content", "Channel"]
 
 if st.button("Run All Agents"):
     with st.spinner("Agents making decisions..."):
